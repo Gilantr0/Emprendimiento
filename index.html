@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>BrainDoc - Auto-Tagging & Metadatos</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; 
+            padding: 30px; 
+            background: #f4f6f8; 
+            color: #333; 
+        }
+
+        /* Encabezado y Marca */
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: #ffffff;
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            border-left: 6px solid #0066cc;
+        }
+
+        .header-brand img {
+            height: 70px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #1e293b;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            margin: 4px 0 0 0;
+            color: #64748b;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* Tarjetas de Interfaz */
+        .card { 
+            background: white; 
+            padding: 24px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); 
+            margin-bottom: 25px; 
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        input[type="text"] { 
+            flex: 1; 
+            padding: 12px 16px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #0066cc;
+            box-shadow: 0 0 0 3px rgba(0,102,204,0.15);
+        }
+
+        select {
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            background: white;
+            color: #333;
+        }
+
+        select:focus {
+            border-color: #0066cc;
+            box-shadow: 0 0 0 3px rgba(0,102,204,0.15);
+        }
+
+        button { 
+            padding: 12px 24px; 
+            border: none; 
+            background: #0066cc; 
+            color: white; 
+            font-weight: 600;
+            border-radius: 6px; 
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #0052a3;
+        }
+
+        /* Tabla de resultados */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { text-align: left; padding: 14px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        th { background: #f8fafc; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        /* Badges & Metadatos */
+        .tag { background: #0284c7; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; margin-right: 4px; display: inline-block; font-weight: 500; }
+        .category { background: #e2e8f0; color: #334155; padding: 3px 10px; border-radius: 6px; font-size: 0.8em; font-weight: 600; }
+        .meta-info { font-size: 0.85em; color: #64748b; margin-top: 4px; }
+        .snippet { font-size: 0.8em; color: #475569; font-style: italic; margin-top: 6px; background: #f8fafc; padding: 6px 10px; border-radius: 4px; border-left: 3px solid #cbd5e1; }
+        .file-link { cursor: pointer; color: #0066cc; text-decoration: none; }
+        .file-link:hover { text-decoration: underline; }
+        .file-path {
+            cursor: pointer;
+            font-family: "Courier New", monospace;
+            font-size: 0.75em;
+            color: #94a3b8;
+            user-select: all;
+            word-break: break-all;
+        }
+        .file-path:hover { color: #0066cc; }
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado con Logo del Emprendimiento -->
+    <div class="header-brand">
+        <img src="/logo.jpeg" alt="BrainDoc Logo" onerror="this.onerror=null; this.src='logo.jpg';">
+        <div class="header-title">
+            <h1>BrainDoc</h1>
+            <p>Menos búsquedas, más resultados — Motor de Escaneo & Autotagging</p>
+        </div>
+    </div>
+
+    <!-- Panel de Control -->
+    <div class="card">
+        <label><strong>Ruta de la carpeta local a analizar:</strong></label>
+        <div class="input-group">
+            <input type="text" id="dirPath" placeholder="/Users/tu_usuario/Documentos">
+            <button onclick="scanFolder()">Analizar Archivos</button>
+        </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="card">
+        <h2 style="margin-top:0; font-size: 1.2rem; color: #334155;">Vista Previa de Metadatos y Etiquetas (IA)</h2>
+        <div class="input-group" style="margin-top:0; margin-bottom: 15px;">
+            <input type="text" id="searchBox" placeholder="Buscar por nombre, categoría, etiqueta o contenido..." oninput="filterFiles()" disabled>
+            <select id="typeFilter" onchange="filterFiles()" disabled>
+                <option value="">Todos los tipos</option>
+            </select>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre y Tamaño</th>
+                    <th>Categoría</th>
+                    <th>Auto-Tags (IA / Reglas)</th>
+                    <th>Metadatos y Fragmento</th>
+                </tr>
+            </thead>
+            <tbody id="fileTable">
+                <tr><td colspan="4" style="color: #94a3b8; text-align: center; padding: 30px;">Ingresa una ruta y haz clic en "Analizar Archivos".</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let lastFiles = []; // Guarda el último resultado del escaneo para poder filtrarlo sin volver a llamar al backend
+
+        async function scanFolder() {
+            const path = document.getElementById('dirPath').value;
+            if(!path) return alert("Por favor ingresa una ruta válida.");
+
+            const tbody = document.getElementById('fileTable');
+            const searchBox = document.getElementById('searchBox');
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Analizando archivos y extrayendo metadatos...</td></tr>';
+            searchBox.disabled = true;
+
+            try {
+                const res = await fetch('/api/scan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({directory: path})
+                });
+                const data = await res.json();
+                if(!res.ok) return alert(data.detail);
+
+                lastFiles = data.files;
+                searchBox.value = '';
+                searchBox.disabled = false;
+                populateTypeFilter(lastFiles);
+                renderTable(lastFiles);
+            } catch (err) {
+                alert("Error de conexión con el backend.");
+                tbody.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Error al consultar el servidor local.</td></tr>';
+            }
+        }
+
+        function populateTypeFilter(files) {
+            const select = document.getElementById('typeFilter');
+            const exts = [...new Set(files.map(f => {
+                const parts = f.name.split('.');
+                return parts.length > 1 ? parts.pop().toLowerCase() : 'sin_extensión';
+            }))].sort();
+
+            select.innerHTML = '<option value="">Todos los tipos</option>' +
+                exts.map(ext => `<option value="${ext}">.${ext}</option>`).join('');
+            select.disabled = false;
+        }
+
+        function filterFiles() {
+            const query = document.getElementById('searchBox').value.trim().toLowerCase();
+            const type = document.getElementById('typeFilter').value;
+
+            let filtered = lastFiles;
+
+            if (type) {
+                filtered = filtered.filter(f => {
+                    const parts = f.name.split('.');
+                    const ext = parts.length > 1 ? parts.pop().toLowerCase() : 'sin_extensión';
+                    return ext === type;
+                });
+            }
+
+            if (query) {
+                filtered = filtered.filter(f => {
+                    const haystack = [
+                        f.name,
+                        f.category,
+                        ...(f.tags || []),
+                        f.snippet || '',
+                        ...Object.values(f.metadata || {})
+                    ].join(' ').toLowerCase();
+                    return haystack.includes(query);
+                });
+            }
+
+            renderTable(filtered);
+        }
+
+        async function revealFile(path) {
+            try {
+                const res = await fetch('/api/reveal', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: path})
+                });
+                const data = await res.json();
+                if(!res.ok) alert(data.detail);
+            } catch (err) {
+                alert("Error de conexión con el backend al intentar abrir el Explorador.");
+            }
+        }
+
+        async function openFile(path) {
+            try {
+                const res = await fetch('/api/open', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: path})
+                });
+                const data = await res.json();
+                if(!res.ok) alert(data.detail);
+            } catch (err) {
+                alert("Error de conexión con el backend al intentar abrir el archivo.");
+            }
+        }
+
+        function renderTable(files) {
+            const tbody = document.getElementById('fileTable');
+            tbody.innerHTML = '';
+
+            if(files.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px; color:#94a3b8;">No se encontraron archivos que coincidan.</td></tr>';
+                return;
+            }
+
+            files.forEach(f => {
+                const tagsHtml = f.tags.length > 0 
+                    ? f.tags.map(t => `<span class="tag">${t}</span>`).join('') 
+                    : '<span style="color:#94a3b8; font-size:0.8em;">Sin etiquetas</span>';
+
+                let metaText = Object.entries(f.metadata)
+                    .map(([k, v]) => `<strong>${k}:</strong> ${v}`).join(' | ');
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>
+                            <strong class="file-link" onclick='openFile(${JSON.stringify(f.path)})' title="Clic para abrir el archivo">${f.name}</strong><br>
+                            <span class="meta-info">${f.size_kb} KB</span><br>
+                            <span class="file-path" onclick='revealFile(${JSON.stringify(f.path)})' title="Clic para abrir la ubicación en el Explorador de Windows">${f.path}</span>
+                        </td>
+                        <td><span class="category">${f.category}</span></td>
+                        <td>${tagsHtml}</td>
+                        <td>
+                            <div class="meta-info">${metaText || 'Sin metadatos adicionales'}</div>
+                            ${f.snippet ? `<div class="snippet">"${f.snippet}..."</div>` : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
